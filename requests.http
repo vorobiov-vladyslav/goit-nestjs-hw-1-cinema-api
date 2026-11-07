@@ -1,0 +1,441 @@
+@host = http://localhost:3000
+
+### 1. Створити фільм
+# @name createFilm
+POST {{host}}/films
+Content-Type: application/json
+
+{
+  "title": "Inception",
+  "durationMinutes": 148,
+  "releaseYear": 2010
+}
+
+### 2. Масив усіх фільмів
+GET {{host}}/films
+
+### 3. Один фільм
+GET {{host}}/films/{{createFilm.response.body.id}}
+
+### 4. Оновити фільм (передаємо підмножину полів)
+PATCH {{host}}/films/{{createFilm.response.body.id}}
+Content-Type: application/json
+
+{
+  "durationMinutes": 150
+}
+
+### 5. Створити зал 3x5
+# @name createHall
+POST {{host}}/halls
+Content-Type: application/json
+
+{
+  "name": "Червона зала",
+  "rows": 3,
+  "seatsPerRow": 5
+}
+
+### 6. Масив усіх залів
+GET {{host}}/halls
+
+### 7. Один зал разом із переліком місць (15 елементів)
+GET {{host}}/halls/{{createHall.response.body.id}}
+
+### 8. Створити сеанс (дата в майбутньому)
+# @name createShowing
+POST {{host}}/showings
+Content-Type: application/json
+
+{
+  "filmId": "{{createFilm.response.body.id}}",
+  "hallId": "{{createHall.response.body.id}}",
+  "startsAt": "2027-06-01T18:30:00.000Z",
+  "price": 12500
+}
+
+### 9. Другий сеанс того ж дня, пізніше (перевірка сортування)
+# @name createShowingLate
+POST {{host}}/showings
+Content-Type: application/json
+
+{
+  "filmId": "{{createFilm.response.body.id}}",
+  "hallId": "{{createHall.response.body.id}}",
+  "startsAt": "2027-06-01T21:00:00.000Z",
+  "price": 15000
+}
+
+### 10. Масив усіх сеансів (відсортований за часом, з назвами фільму й залу)
+GET {{host}}/showings
+
+### 11. Фільтрація за filmId
+GET {{host}}/showings?filmId={{createFilm.response.body.id}}
+
+### 12. Фільтрація за date
+GET {{host}}/showings?date=2027-06-01
+
+### 13. Обидва фільтри разом
+GET {{host}}/showings?filmId={{createFilm.response.body.id}}&date=2027-06-01
+
+### 14. Один сеанс
+GET {{host}}/showings/{{createShowing.response.body.id}}
+
+### 15. Схема місць до бронювання (усі місця вільні)
+GET {{host}}/showings/{{createShowing.response.body.id}}/seats
+
+### 16. Забронювати два місця (1 ряд, місця 2 і 3)
+# @name createBooking
+POST {{host}}/showings/{{createShowing.response.body.id}}/bookings
+Content-Type: application/json
+
+{
+  "seats": [
+    { "row": 1, "seat": 2 },
+    { "row": 1, "seat": 3 }
+  ]
+}
+
+### 17. Масив усіх бронювань
+GET {{host}}/bookings
+
+### 18. Бронювання конкретного сеансу
+GET {{host}}/showings/{{createShowing.response.body.id}}/bookings
+
+### 19. Схема місць після бронювання (місця 1/2 і 1/3 зайняті)
+GET {{host}}/showings/{{createShowing.response.body.id}}/seats
+
+### 20. ПОМИЛКА 409: спроба забронювати вже зайняте місце
+POST {{host}}/showings/{{createShowing.response.body.id}}/bookings
+Content-Type: application/json
+
+{
+  "seats": [
+    { "row": 1, "seat": 2 },
+    { "row": 2, "seat": 1 }
+  ]
+}
+
+### 21. Скасувати бронювання
+DELETE {{host}}/bookings/{{createBooking.response.body.id}}
+
+### 22. Схема місць після скасування (місця знову вільні)
+GET {{host}}/showings/{{createShowing.response.body.id}}/seats
+
+### 23. ПОМИЛКА 400: створити фільм без обов'язкового поля
+POST {{host}}/films
+Content-Type: application/json
+
+{
+  "title": "Без тривалості",
+  "releaseYear": 2020
+}
+
+### 24. ПОМИЛКА 400: неправильний тип поля
+POST {{host}}/films
+Content-Type: application/json
+
+{
+  "title": "Wrong type",
+  "durationMinutes": "148",
+  "releaseYear": 2020
+}
+
+### 25. ПОМИЛКА 400: durationMinutes не додатне
+POST {{host}}/films
+Content-Type: application/json
+
+{
+  "title": "Negative duration",
+  "durationMinutes": -10,
+  "releaseYear": 2020
+}
+
+### 26. ПОМИЛКА 404: неіснуючий фільм
+GET {{host}}/films/00000000-0000-4000-8000-000000000000
+
+### 27. ПОМИЛКА 400: оновити фільм неправильним типом поля
+PATCH {{host}}/films/{{createFilm.response.body.id}}
+Content-Type: application/json
+
+{
+  "title": 42
+}
+
+### 28. ПОМИЛКА 400: явний null у PATCH фільма — title
+PATCH {{host}}/films/{{createFilm.response.body.id}}
+Content-Type: application/json
+
+{
+  "title": null
+}
+
+### 29. ПОМИЛКА 400: явний null у PATCH фільма — durationMinutes
+PATCH {{host}}/films/{{createFilm.response.body.id}}
+Content-Type: application/json
+
+{
+  "durationMinutes": null
+}
+
+### 30. ПОМИЛКА 400: явний null у PATCH фільма — releaseYear
+PATCH {{host}}/films/{{createFilm.response.body.id}}
+Content-Type: application/json
+
+{
+  "releaseYear": null
+}
+
+### 31. ПОМИЛКА 404: оновити неіснуючий фільм
+PATCH {{host}}/films/00000000-0000-4000-8000-000000000000
+Content-Type: application/json
+
+{
+  "title": "Ghost film"
+}
+
+### 32. ПОМИЛКА 409: зал з такою назвою вже існує
+POST {{host}}/halls
+Content-Type: application/json
+
+{
+  "name": "Червона зала",
+  "rows": 2,
+  "seatsPerRow": 2
+}
+
+### 33. ПОМИЛКА 400: кількість рядів не ціле додатне
+POST {{host}}/halls
+Content-Type: application/json
+
+{
+  "name": "Порожня зала",
+  "rows": 0,
+  "seatsPerRow": 5
+}
+
+### 34. ПОМИЛКА 400: створити зал без обов'язкового поля (немає name)
+POST {{host}}/halls
+Content-Type: application/json
+
+{
+  "rows": 2,
+  "seatsPerRow": 2
+}
+
+### 35. ПОМИЛКА 400: неправильний тип поля залу (rows — рядок, а не число)
+POST {{host}}/halls
+Content-Type: application/json
+
+{
+  "name": "Зал з неправильним типом",
+  "rows": "2",
+  "seatsPerRow": 2
+}
+
+### 36. ПОМИЛКА 404: неіснуючий зал
+GET {{host}}/halls/00000000-0000-4000-8000-000000000000
+
+### 37. ПОМИЛКА 400: фільму з переданим filmId немає
+POST {{host}}/showings
+Content-Type: application/json
+
+{
+  "filmId": "00000000-0000-4000-8000-000000000000",
+  "hallId": "{{createHall.response.body.id}}",
+  "startsAt": "2027-06-02T18:30:00.000Z",
+  "price": 12500
+}
+
+### 38. ПОМИЛКА 400: залу з переданим hallId немає
+POST {{host}}/showings
+Content-Type: application/json
+
+{
+  "filmId": "{{createFilm.response.body.id}}",
+  "hallId": "00000000-0000-4000-8000-000000000000",
+  "startsAt": "2027-06-02T18:30:00.000Z",
+  "price": 12500
+}
+
+### 39. ПОМИЛКА 400: startsAt не ISO 8601
+POST {{host}}/showings
+Content-Type: application/json
+
+{
+  "filmId": "{{createFilm.response.body.id}}",
+  "hallId": "{{createHall.response.body.id}}",
+  "startsAt": "01.06.2027 18:30",
+  "price": 12500
+}
+
+### 40. ПОМИЛКА 400: startsAt у минулому
+POST {{host}}/showings
+Content-Type: application/json
+
+{
+  "filmId": "{{createFilm.response.body.id}}",
+  "hallId": "{{createHall.response.body.id}}",
+  "startsAt": "2020-01-01T10:00:00.000Z",
+  "price": 12500
+}
+
+### 41. ПОМИЛКА 400: price не ціле додатне
+POST {{host}}/showings
+Content-Type: application/json
+
+{
+  "filmId": "{{createFilm.response.body.id}}",
+  "hallId": "{{createHall.response.body.id}}",
+  "startsAt": "2027-06-02T18:30:00.000Z",
+  "price": 12.5
+}
+
+### 42. ПОМИЛКА 400: date не у форматі YYYY-MM-DD
+GET {{host}}/showings?date=01.06.2027
+
+### 43. ПОМИЛКА 400: date — нереальна календарна дата
+GET {{host}}/showings?date=2027-02-31
+
+### 44. ПОМИЛКА 404: неіснуючий сеанс
+GET {{host}}/showings/00000000-0000-4000-8000-000000000000
+
+### 45. ПОМИЛКА 404: схема місць неіснуючого сеансу
+GET {{host}}/showings/00000000-0000-4000-8000-000000000000/seats
+
+### 46. ПОМИЛКА 404: бронювання неіснуючого сеансу
+POST {{host}}/showings/00000000-0000-4000-8000-000000000000/bookings
+Content-Type: application/json
+
+{
+  "seats": [{ "row": 1, "seat": 1 }]
+}
+
+### 47. ПОМИЛКА 400: порожній масив seats
+POST {{host}}/showings/{{createShowing.response.body.id}}/bookings
+Content-Type: application/json
+
+{
+  "seats": []
+}
+
+### 48. ПОМИЛКА 400: те саме місце двічі в запиті
+POST {{host}}/showings/{{createShowing.response.body.id}}/bookings
+Content-Type: application/json
+
+{
+  "seats": [
+    { "row": 2, "seat": 1 },
+    { "row": 2, "seat": 1 }
+  ]
+}
+
+### 49. ПОМИЛКА 400: місце поза межами залу (ряд 4 при rows = 3)
+POST {{host}}/showings/{{createShowing.response.body.id}}/bookings
+Content-Type: application/json
+
+{
+  "seats": [{ "row": 4, "seat": 1 }]
+}
+
+### 50. ПОМИЛКА 400: у місці бронювання відсутнє поле row
+POST {{host}}/showings/{{createShowing.response.body.id}}/bookings
+Content-Type: application/json
+
+{
+  "seats": [
+    { "seat": 1 }
+  ]
+}
+
+### 51. ПОМИЛКА 400: у місці бронювання відсутнє поле seat
+POST {{host}}/showings/{{createShowing.response.body.id}}/bookings
+Content-Type: application/json
+
+{
+  "seats": [
+    { "row": 1 }
+  ]
+}
+
+### 52. ПОМИЛКА 400: елемент seats — вкладений масив ([[]])
+POST {{host}}/showings/{{createShowing.response.body.id}}/bookings
+Content-Type: application/json
+
+{
+  "seats": [ [] ]
+}
+
+### 53. ПОМИЛКА 400: елемент seats — порожній об'єкт ([{}])
+POST {{host}}/showings/{{createShowing.response.body.id}}/bookings
+Content-Type: application/json
+
+{
+  "seats": [ {} ]
+}
+
+### 54. ПОМИЛКА 400: некоректний номер місця (row = 0)
+POST {{host}}/showings/{{createShowing.response.body.id}}/bookings
+Content-Type: application/json
+
+{
+  "seats": [
+    { "row": 0, "seat": 1 }
+  ]
+}
+
+### 55. ПОМИЛКА 400: номери місця мають бути числами (row — рядок)
+POST {{host}}/showings/{{createShowing.response.body.id}}/bookings
+Content-Type: application/json
+
+{
+  "seats": [
+    { "row": "1", "seat": 2 }
+  ]
+}
+
+### 56. ПОМИЛКА 404: бронювання неіснуючого сеансу (GET)
+GET {{host}}/showings/00000000-0000-4000-8000-000000000000/bookings
+
+### 57. ПОМИЛКА 404: скасувати неіснуюче бронювання
+DELETE {{host}}/bookings/00000000-0000-4000-8000-000000000000
+
+### 58. ПОМИЛКА 409: видалити фільм, на який посилається сеанс
+DELETE {{host}}/films/{{createFilm.response.body.id}}
+
+### 59. ПОМИЛКА 409: видалити зал, на який посилається сеанс
+DELETE {{host}}/halls/{{createHall.response.body.id}}
+
+### 60. ПОМИЛКА 404: видалити неіснуючий фільм
+DELETE {{host}}/films/00000000-0000-4000-8000-000000000000
+
+### 61. ПОМИЛКА 404: видалити неіснуючий зал
+DELETE {{host}}/halls/00000000-0000-4000-8000-000000000000
+
+### 62. УСПІХ 201 + 204: створити й видалити фільм без сеансів
+# @name tempFilm
+POST {{host}}/films
+Content-Type: application/json
+
+{
+  "title": "Тимчасовий фільм",
+  "durationMinutes": 90,
+  "releaseYear": 2024
+}
+
+### 63. УСПІХ 204: видалити тимчасовий фільм
+DELETE {{host}}/films/{{tempFilm.response.body.id}}
+
+### 64. УСПІХ 201 + 204: створити й видалити зал без сеансів
+# @name tempHall
+POST {{host}}/halls
+Content-Type: application/json
+
+{
+  "name": "Тимчасова зала",
+  "rows": 1,
+  "seatsPerRow": 1
+}
+
+### 65. УСПІХ 204: видалити тимчасовий зал
+DELETE {{host}}/halls/{{tempHall.response.body.id}}
